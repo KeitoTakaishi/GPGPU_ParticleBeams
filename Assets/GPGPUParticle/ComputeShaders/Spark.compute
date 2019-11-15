@@ -1,0 +1,49 @@
+﻿#pragma kernel spark
+#include "noise4d.hlsl"
+RWStructuredBuffer<float3> positionBuffer;
+RWStructuredBuffer<float3> velocityBuffer;
+RWStructuredBuffer<float3> accelerateBuffer;
+RWStructuredBuffer<float2> lifeBuffer;
+
+float4 collisionPos;
+float dt;
+float time;
+bool isCollision;
+
+[numthreads(64,1,1)]
+void spark (uint id : SV_DispatchThreadID)
+{
+    int i = id;
+    float3 position = positionBuffer[i];
+    float3 velocity = velocityBuffer[i];
+    if(isCollision){
+        lifeBuffer[i].y = lifeBuffer[i].x; 
+        //position = collisionPos.xyz + curlNoise(float4(0.0, 0.0 ,id * 200.0, time));;
+        position = collisionPos.xyz;
+    }
+   
+    if(lifeBuffer[i].y > 0.0){
+        lifeBuffer[i].y -= dt * 1.0;
+        float3 noise = curlNoise(float4(0.0,id * 2.0 , 0.0, time*0.2));
+                
+        float3 force = accelerateBuffer[i]*7.5;
+        //force += snoise(float4(force.x, force.y, force.z, time * 10.0));
+        //force -= 1.0 * (velocity);
+        force += 2.0*noise;
+        velocity += force * dt;
+        
+        //vel = force * dt;
+        //force += float3(0.0, -0.1, 0.0);
+        //velocityBuffer[i] += force * dt; 
+        //position += velocityBuffer[i] * dt * 1.0; 
+        //position += 0.1 *accelerateBuffer[i] * noise;
+        position += velocity * dt;
+        
+    }else{
+        position = float3(0.0, 0.0, -100.0);
+        velocity = float3(0.0, 0.0, 0.0);
+    }
+    positionBuffer[i] = position;
+    velocityBuffer[i] = velocity;
+    
+}

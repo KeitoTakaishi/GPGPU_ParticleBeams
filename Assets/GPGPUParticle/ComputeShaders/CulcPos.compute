@@ -1,0 +1,144 @@
+﻿#pragma kernel Culc
+#pragma kernel Reset
+
+#include "noise4d.hlsl"
+#include "rand.hlsl"
+
+RWTexture2D<float4> positionRenderTexture;
+RWStructuredBuffer<float3> positionBuffer;
+RWStructuredBuffer<float3> velocityBuffer;
+RWStructuredBuffer<float3> lifeBuffer;
+RWStructuredBuffer<float3> particleParamsBuffer;
+RWStructuredBuffer<float3> randomBuffer;
+//RWStructuredBuffer<int> db;
+float deltaTime;
+float time;
+float4 targetPos;
+
+
+//billboard
+float3 camPos;
+
+//8x8に変更した方がいい
+[numthreads(16,1,1)]
+void Culc (uint id : SV_DispatchThreadID)
+{
+    
+    int i = (int)id;
+    float3 pos = positionBuffer[i];
+    float3 vel = velocityBuffer[i];
+    float3 life = lifeBuffer[i];
+    
+    float3 toTarget = targetPos.xyz - pos;
+    
+    
+    float3 vn = normalize(vel);
+    float Dot = dot(toTarget, vn);
+    float3 centripetalAccel = toTarget - (vn * Dot);
+    float centripetalAccelMagnitude = length(centripetalAccel);
+    
+    if (centripetalAccelMagnitude > 1.0){
+        centripetalAccel /= centripetalAccelMagnitude;
+    }
+    
+    
+    //float maxCentripetalAccel = speed * speed / curvatureRadius;
+    float speed = length(vel);
+    
+    //float maxCentripetalAccel = particleParamsBuffer[i].z * particleParamsBuffer[i].z / particleParamsBuffer[i].x;
+    float maxCentripetalAccel = speed * speed / particleParamsBuffer[i].x;
+    
+    //float propulsion = speed * damping;
+    //float propulsion = particleParamsBuffer[i].z * particleParamsBuffer[i].y;
+    float propulsion = speed * particleParamsBuffer[i].y;
+    
+    ////改善の余地がある
+    float3 force = centripetalAccel * maxCentripetalAccel;
+    force += vn * propulsion;
+    force -= vel * particleParamsBuffer[i].y;
+    //random項
+    float noisePower = pow(life.x - life.y, 0.5);
+    noisePower = clamp(noisePower, 0.0, 1.5);
+    float3 noise = noisePower *curlNoise(float4(id, id, id, time));
+    //float3 noise = 0.1*(life.x - life.y)*curlNoise(float4(i, i, i, i));
+    //float3 random = randomBuffer[i] * 0.1; 
+    float random = 0.3 * rand(float2(float(i) , float(i)));
+    random = random * 2.0 - 1.0;
+    
+    //forceにrandomを乗算して散らす
+    force *= random;
+    force += 0.05*speed*noise;
+    
+    //散らす
+    //float3 up = float3(0.0, 1.0, 0.0);
+    //float3 right = cross(up, normalize(force));
+    //right = normalize(right);
+    //up = cross(normalize(force), right);
+    //force += (right*random + up * random)*noisePower;
+    
+    vel += force * deltaTime;  
+    pos += vel * deltaTime;
+    
+    
+   
+    //life
+    //dead
+    
+    if(life.z == 0.0){
+        //life.y = lifeBuffer[i].x; 
+        //life.z = 1.0;
+    }else{
+    //alive
+        if(life.y < 0.0){
+            life.y = 0.0;
+            life.z = 0.0;
+        }else{
+            if(length(toTarget) < 1.0){
+                life.y = 0.0;
+            }else{
+                life.y -= deltaTime;
+            }
+        }
+        
+    }
+    lifeBuffer[i] = life;
+    
+    //billboard
+    //現在自分が向いている方向
+    //float3 dir = camPos - pos;
+    //float3 forward = float3(0.0, 0.0, -1.0);
+    //float theta = acos(dot(dir, forward));
+    //axisBuffer[id] = normalize(cross(forward, dir));
+    
+    
+     
+    positionBuffer[i] = pos; 
+    velocityBuffer[i] = vel;
+    positionRenderTexture[float2(i, 0.0)] = float4(pos.x, pos.y, pos.z, 1.0);   
+}
+
+
+
+float2 resetVel;
+[numthreads(16,1,1)]
+void Reset (uint id : SV_DispatchThreadID){
+     
+    int i = (int)id ;
+    float3 pos = positionBuffer[i];
+    pos = float3(0.0, 0.0, 0.0);
+    float3 vel = velocityBuffer[i];
+    
+    
+    vel = float3(resetVel.x, resetVel.y, 1.0);
+    //vel = normalize(vel);
+    
+    
+    positionBuffer[i] = pos;
+    velocityBuffer[i] = vel;
+    float3 life = lifeBuffer[i];
+    life.y = life.x;
+    life.z = 1.0;
+    lifeBuffer[i] = life;
+    positionRenderTexture[float2(i, 0.0)] = float4(pos.x, pos.y, pos.z, 1.0);   
+}
+    

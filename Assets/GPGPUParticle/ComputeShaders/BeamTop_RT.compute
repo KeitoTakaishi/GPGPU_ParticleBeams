@@ -1,0 +1,35 @@
+﻿#pragma kernel ArchiveTop
+
+Texture2D<float4> srcBeamTopRenderBuffer;
+RWTexture2D<float4> dstBeamTopRenderBuffer;
+RWStructuredBuffer<float2> lifeBuffer;
+
+int topIndex;
+float dt;
+float4 topPos;
+float4 targetPos;
+
+[numthreads(64,1,1)]
+void ArchiveTop (uint id : SV_DispatchThreadID)
+{
+    int i = id;
+    if(i == topIndex){
+        dstBeamTopRenderBuffer[float2(i, 0.0)] = float4(topPos.x, topPos.y, topPos.z, 1.0);
+        lifeBuffer[i].y = lifeBuffer[i].x;
+    }else{
+        if(lifeBuffer[i].y > 0.0){
+            float4 p = float4(0.0, 0.0, 0.0, 0.0);
+            p = srcBeamTopRenderBuffer[float2(i, 0.0)];
+            
+            float dis = length(targetPos.xyz - p.xyz);
+            if(dis < 0.4){
+               lifeBuffer[i].y = 0.0;
+               dstBeamTopRenderBuffer[float2(i, 0)] = float4(0.0, 0.0, 0.0, 1.0);
+            }else{
+               lifeBuffer[i].y -= dt * 3.0;
+            }
+        }else if(lifeBuffer[i].y < 0.0){
+            lifeBuffer[i].y = 0.0;
+        }
+    }
+}

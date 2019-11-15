@@ -1,0 +1,32 @@
+﻿#pragma kernel ArchiveTop
+RWStructuredBuffer<float3> beamTopBuffer; 
+RWStructuredBuffer<float2> lifeBuffer;
+int topIndex;
+float dt;
+float4 topPos;
+float4 targetPos;
+
+[numthreads(64,1,1)]
+void ArchiveTop (uint id : SV_DispatchThreadID)
+{
+    int i = id;
+    if(i == topIndex){
+        beamTopBuffer[i] = float4(topPos.x, topPos.y, topPos.z, 1.0);
+        lifeBuffer[i].y = lifeBuffer[i].x;
+    }else{
+        if(lifeBuffer[i].y > 0.0){
+            float4 p = float4(0.0, 0.0, 0.0, 0.0);
+            p.xyz = beamTopBuffer[i];
+            
+            float dis = length(targetPos.xyz - p.xyz);
+            if(dis < 0.1){
+               lifeBuffer[i].y = 0.0;
+               beamTopBuffer[i] = float4(0.0, 0.0, 0.0, 1.0);
+            }else{
+               lifeBuffer[i].y -= dt * 3.0;
+            }
+        }else if(lifeBuffer[i].y < 0.0){
+            lifeBuffer[i].y = 0.0;
+        }
+    }
+}
