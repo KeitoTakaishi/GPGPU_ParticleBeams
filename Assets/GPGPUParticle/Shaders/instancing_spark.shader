@@ -79,13 +79,13 @@
                 position.xyz =  positionBuffer[instanceID].xyz;
                 
                 float2 life = lifeBuffer[instanceID].y;
-                float scaleOff = 0.25 * (pow((life.x - life.y), 1.5) - 1.0);
+                float scaleOff = 0.15 * (pow((life.x - life.y), 1.5) - 1.0);
                 //float scaleOff = 0.4 * life.y;
                 //float caleOff = 0.03;
                 
                 float4  vertex = mul(ScaleMatrix(float3(scaleOff, scaleOff, scaleOff)), v.vertex);
                 v.vertex = mul(TranslateMatrix(position * 1.0), vertex);
-                o.color = lerp(_Color, _EndColor, length(velocityBuffer[instanceID].xyz)/3.0);
+                o.color = lerp(_Color, _EndColor, length(velocityBuffer[instanceID].xyz)/10.0);
             
                 #endif
             }

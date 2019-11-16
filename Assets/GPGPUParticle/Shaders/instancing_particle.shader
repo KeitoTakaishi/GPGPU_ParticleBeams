@@ -109,9 +109,9 @@
                 
                 
                 float2 life = lifeBuffer[(int)id];
-                position.xyz += noise * 0.25 * pow((life.x - life.y), 1.3); 
+                position.xyz += noise * (0.45 + ((life.x - life.y) / life.x)  * sin(_Time.y + id * 10.0)) * pow((life.x - life.y)/life.x, 1.3);
                 //position.xyz += noise * 0.45 * life.y;
-                float scaleOff = (0.15 + 0.01 * sin(_Time.y)) * (pow(life.x-life.y, 1.5)-1.0);
+                float scaleOff = 0.05 * (pow((life.x - life.y) / life.x, 1.5));
                 float a = (life.x - life.y)/life.x;
                 o.color = lerp(_Color, _EndColor, a);
                 o.alpha = 1.0-a;
@@ -135,11 +135,11 @@
             void surf(Input IN, inout SurfaceOutputStandard o)
             {
                 fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * IN.color;
-                if(length(c) < 0.75){
+                if(length(c) < 0.95){
                     discard;
                 }
                 o.Albedo = c.rgb;
-                o.Alpha = IN.alpha;
+                o.Alpha = c.a;
             }
             ENDCG
         }

@@ -218,7 +218,7 @@ public class BakeBeamTop : MonoBehaviour
             rnd = Random.insideUnitSphere;
         }
 
-        this.vel = vel = new Vector3(rnd.x, rnd.y, Mathf.Abs(rnd.z)) * 6.5f;
+        this.vel = vel = new Vector3(rnd.x, rnd.y, Mathf.Abs(rnd.z)) * 10.0f;
 
         //var d = target.transform.position - this.transform.position;
         //d = d.normalized;
@@ -260,7 +260,7 @@ public class BakeBeamTop : MonoBehaviour
     {
         if (count % span == 0)
         {
-            next = Random.insideUnitSphere * 5.0f + new Vector3(0, 0, 10);
+            next = Random.insideUnitSphere *10.0f + new Vector3(0, 0, 10);
             dir = next - target.transform.position;
             dir = dir.normalized;
             count = 0;
